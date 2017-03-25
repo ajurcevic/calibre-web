@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="discover">
+  <h1>{{title}}</h1>
+  <form role="form" method="POST">
+    <div class="form-group">
+      <label for="mail_server">{{_('SMTP hostname')}}</label>
+      <input type="text" class="form-control" name="mail_server" id="mail_server" value="{{content.mail_server}}">
+    </div>
+    <div class="form-group">
+      <label for="mail_port">{{_('SMTP port (usually 25 for plain SMTP and 465 for SSL and 587 for STARTTLS)')}}</label>
+      <input type="text" class="form-control" name="mail_port" id="mail_port" value="{{content.mail_port}}">
+    </div>
+    <div class="form-group">
+      <label for="mail_use_ssl">{{_('Encryption')}}</label>
+        <select name="mail_use_ssl" id="mail_use_ssl" class="form-control">
+            <option value="0" {% if content.mail_use_ssl == 0 %}selected{% endif %}>{{ _('None') }}</option>
+            <option value="1" {% if content.mail_use_ssl == 1 %}selected{% endif %}>{{ _('STARTTLS') }}</option>
+            <option value="2" {% if content.mail_use_ssl == 2 %}selected{% endif %}>{{ _('SSL/TLS') }}</option>
+        </select>
+    </div>
+    <div class="form-group">
+      <label for="mail_login">{{_('SMTP login')}}</label>
+      <input type="text" class="form-control" name="mail_login" id="mail_login" value="{{content.mail_login}}">
+    </div>
+    <div class="form-group">
+      <label for="mail_password">{{_('SMTP password')}}</label>
+      <input type="password" class="form-control" name="mail_password" id="mail_password" value="{{content.mail_password}}">
+    </div>
+    <div class="form-group">
+      <label for="mail_from">{{_('From e-mail')}}</label>
+      <input type="text" class="form-control" name="mail_from" id="mail_from" value="{{content.mail_from}}">
+    </div>
+    <button type="submit" name="submit" value="submit" class="btn btn-default">{{_('Save settings')}}</button>
+    <button type="submit" name="test" value="test" class="btn btn-default">{{_('Save settings and send Test E-Mail')}}</button>
+    <a href="{{ url_for('admin') }}" class="btn btn-default">{{_('Back')}}</a>
+  </form>
+
+</div>
+{% endblock %}
