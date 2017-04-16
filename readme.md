@@ -1,3 +1,5 @@
+   ![Version](https://img.shields.io/badge/Library-2.0-blue.svg) 
+
 # About
 
 Calibre Web is a web app providing a clean interface for browsing, reading and downloading eBooks using an existing [Calibre](https://calibre-ebook.com) database.
@@ -28,7 +30,7 @@ Calibre Web is a web app providing a clean interface for browsing, reading and d
 - Self update capability
 
 
-## Using Google Drive integration
+## Adding Google Drive integration
 
 Additional optional dependencys are necessary to get this work. Please install all optional  requirements by executing `pip install -r optional-requirements.txt`
 
@@ -55,4 +57,3 @@ The Drive API should now be setup and ready to use, so we need to integrate it i
 6 Now select Authenticate Google Drive
 7. This should redirect you to google to allow it top use your Drive, and then redirect you back to the config page
 8. Google Drive should now be connected and be used to get images and download Epubs. The metadata.db is stored in the calibre library location
-

@@ -13,7 +13,7 @@ from flask_babel import gettext as _
 import json
 #from builtins import str
 
-dbpath = os.path.join(os.path.normpath(os.path.dirname(os.path.realpath(__file__)) + os.sep + ".." + os.sep), "app.db")
+dbpath = os.path.join(os.path.normpath(os.getenv("CALIBRE_DBPATH", os.path.dirname(os.path.realpath(__file__)) + os.sep + ".." + os.sep)), "app.db")
 engine = create_engine('sqlite:///{0}'.format(dbpath), echo=False)
 Base = declarative_base()
 
@@ -25,6 +25,8 @@ ROLE_EDIT = 8
 ROLE_PASSWD = 16
 ROLE_ANONYMOUS = 32
 ROLE_EDIT_SHELFS = 64
+ROLE_DELETE_BOOKS = 128
+
 
 DETAIL_RANDOM = 1
 SIDEBAR_LANGUAGE = 2
@@ -64,10 +66,7 @@ class UserBase:
             return False
 
     def role_upload(self):
-        if self.role is not None:
-            return True if self.role & ROLE_UPLOAD == ROLE_UPLOAD else False
-        else:
-            return False
+        return bool((self.role is not None)and(self.role & ROLE_UPLOAD == ROLE_UPLOAD))
 
     def role_edit(self):
         if self.role is not None:
@@ -93,9 +92,14 @@ class UserBase:
         else:
             return False
 
+    def role_delete_books(self):
+        return bool((self.role is not None)and(self.role & ROLE_DELETE_BOOKS == ROLE_DELETE_BOOKS))
+
+    @classmethod
     def is_active(self):
         return True
 
+    @classmethod
     def is_anonymous(self):
         return False
 
@@ -106,58 +110,31 @@ class UserBase:
         return self.default_language
 
     def show_random_books(self):
-        if self.sidebar_view is not None:
-            return True if self.sidebar_view & SIDEBAR_RANDOM == SIDEBAR_RANDOM else False
-        else:
-            return False
+        return bool((self.sidebar_view is not None)and(self.sidebar_view & SIDEBAR_RANDOM == SIDEBAR_RANDOM))
 
     def show_language(self):
-        if self.sidebar_view is not None:
-            return True if self.sidebar_view & SIDEBAR_LANGUAGE == SIDEBAR_LANGUAGE else False
-        else:
-            return False
+        return bool((self.sidebar_view is not None)and(self.sidebar_view & SIDEBAR_LANGUAGE == SIDEBAR_LANGUAGE))
 
     def show_hot_books(self):
-        if self.sidebar_view is not None:
-            return True if self.sidebar_view & SIDEBAR_HOT == SIDEBAR_HOT else False
-        else:
-            return False
+        return bool((self.sidebar_view is not None)and(self.sidebar_view & SIDEBAR_HOT == SIDEBAR_HOT))
 
     def show_series(self):
-        if self.sidebar_view is not None:
-            return True if self.sidebar_view & SIDEBAR_SERIES == SIDEBAR_SERIES else False
-        else:
-            return False
+        return bool((self.sidebar_view is not None)and(self.sidebar_view & SIDEBAR_SERIES == SIDEBAR_SERIES))
 
     def show_category(self):
-        if self.sidebar_view is not None:
-            return True if self.sidebar_view & SIDEBAR_CATEGORY == SIDEBAR_CATEGORY else False
-        else:
-            return False
+        return bool((self.sidebar_view is not None)and(self.sidebar_view & SIDEBAR_CATEGORY == SIDEBAR_CATEGORY))
 
     def show_author(self):
-        if self.sidebar_view is not None:
-            return True if self.sidebar_view & SIDEBAR_AUTHOR == SIDEBAR_AUTHOR else False
-        else:
-            return False
+        return bool((self.sidebar_view is not None)and(self.sidebar_view & SIDEBAR_AUTHOR == SIDEBAR_AUTHOR))
 
     def show_best_rated_books(self):
-        if self.sidebar_view is not None:
-            return True if self.sidebar_view & SIDEBAR_BEST_RATED == SIDEBAR_BEST_RATED else False
-        else:
-            return False
+        return bool((self.sidebar_view is not None)and(self.sidebar_view & SIDEBAR_BEST_RATED == SIDEBAR_BEST_RATED))
 
     def show_read_and_unread(self):
-        if self.sidebar_view is not None:
-            return True if self.sidebar_view & SIDEBAR_READ_AND_UNREAD == SIDEBAR_READ_AND_UNREAD else False
-        else:
-            return False
+        return bool((self.sidebar_view is not None)and(self.sidebar_view & SIDEBAR_READ_AND_UNREAD == SIDEBAR_READ_AND_UNREAD))
 
     def show_detail_random(self):
-        if self.sidebar_view is not None:
-            return True if self.sidebar_view & DETAIL_RANDOM == DETAIL_RANDOM else False
-        else:
-            return False
+        return bool((self.sidebar_view is not None)and(self.sidebar_view & DETAIL_RANDOM == DETAIL_RANDOM))
 
     def __repr__(self):
         return '<User %r>' % self.nickname
@@ -321,10 +298,8 @@ class Config:
         else:
             self.config_google_drive_watch_changes_response=None
         self.config_columns_to_ignore = data.config_columns_to_ignore
-        if self.config_calibre_dir is not None and (not self.config_use_google_drive or os.path.exists(self.config_calibre_dir + '/metadata.db')):
-            self.db_configured = True
-        else:
-            self.db_configured = False
+        self.db_configured = bool(self.config_calibre_dir is not None and
+                (not self.config_use_google_drive or os.path.exists(self.config_calibre_dir + '/metadata.db')))
 
     @property
     def get_main_dir(self):
@@ -354,6 +329,13 @@ class Config:
         else:
             return False
 
+    def role_delete_books(self):
+        if self.config_default_role is not None:
+            return True if self.config_default_role & ROLE_DELETE_BOOKS == ROLE_DELETE_BOOKS else False
+        else:
+            return False
+
+
     def role_passwd(self):
         if self.config_default_role is not None:
             return True if self.config_default_role & ROLE_PASSWD == ROLE_PASSWD else False
@@ -365,6 +347,11 @@ class Config:
             return True if self.config_default_role & ROLE_EDIT_SHELFS == ROLE_EDIT_SHELFS else False
         else:
             return False
+
+    def role_delete_books(self):
+        return bool((self.config_default_role is not None) and
+                    (self.config_default_role & ROLE_DELETE_BOOKS == ROLE_DELETE_BOOKS))
+
 
     def get_Log_Level(self):
         ret_value=""
@@ -506,16 +493,15 @@ def create_anonymous_user():
     session.add(user)
     try:
         session.commit()
-    except Exception as e:
+    except Exception:
         session.rollback()
-        pass
 
 
 # Generate User admin with admin123 password, and access to everything
 def create_admin_user():
     user = User()
     user.nickname = "admin"
-    user.role = ROLE_USER + ROLE_ADMIN + ROLE_DOWNLOAD + ROLE_UPLOAD + ROLE_EDIT + ROLE_PASSWD
+    user.role = ROLE_USER + ROLE_ADMIN + ROLE_DOWNLOAD + ROLE_UPLOAD + ROLE_EDIT + ROLE_DELETE_BOOKS + ROLE_PASSWD
     user.sidebar_view = DETAIL_RANDOM + SIDEBAR_LANGUAGE + SIDEBAR_SERIES + SIDEBAR_CATEGORY + SIDEBAR_HOT + \
             SIDEBAR_RANDOM + SIDEBAR_AUTHOR + SIDEBAR_BEST_RATED + SIDEBAR_READ_AND_UNREAD
 
@@ -525,9 +511,8 @@ def create_admin_user():
     session.add(user)
     try:
         session.commit()
-    except Exception as e:
+    except Exception:
         session.rollback()
-        pass
 
 
 # Open session for database connection
